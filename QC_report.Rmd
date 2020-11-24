@@ -1,0 +1,177 @@
+---
+params:
+  ProjTitle:  "Single Cell Sequencing - QC Report"
+  Author:     "Sarah Vang"
+  Sponsor:    "BTS's Jung Kook"
+  SponsorOrg: "Bit Hit Entertainment"
+  QC_Reqs:    "Z:/User/10X/QC_web/10X_QC_Thresholds_TESTDONOTUSE.txt"
+  GEX_Code:   "Z:/User/10X/QC_web/GEX_QC.Rmd"
+  GEX_Table:  NULL
+  GEX_Plots:  NULL
+  TCR_Code:   "Z:/User/10X/QC_web/TCR_QC.Rmd"
+  TCR_Table:  NULL
+  TCR_Plots:  NULL
+  SSS_Code:    "Z:/User/10X/QC_web/Cell_QC.rmd"
+  SSS_Table1:  NULL
+  SSS_Table2:  NULL
+  #SR_Code:    "Z:/User/10X/QC_web/SingleR_QC.rmd"
+  #SR_Plot:    NULL
+  Src_Funcs:  "Z:/User/10X/QC_web/10X_MD_Functions.R"
+output: 
+  html_document:
+    toc: yes
+    toc_float: true
+    code_folding: hide
+---
+<!----- Basic Document Set-up 
+// Default Parameters are placed above!
+// Must represent all parameters above.
+------>
+# Project Details
+![](Z:/User/10X/QC_web/Branding_Image.png){width=75%, fig.align="center"}
+__AUTHOR__  
+`r params$Author`  
+  
+__PROJECT__  
+`r params$ProjTitle`  
+`r params$Sponsor`  
+`r params$SponsorOrg`  
+  
+__DATE COMPLETED__  
+`r toupper(as.character(format(Sys.Date(),"%d%b%Y")))`  
+  
+```{r setup, include=FALSE}
+### Sets options for displaying code within the document.
+knitr::opts_chunk$set(echo = TRUE)
+library(DT)
+### Check QC Reqs Manifest
+if(!file.exists(params$QC_Reqs)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - QC_Reqs file address is not a valid address on the system. Check input and try again.")
+} else {
+  QC_Reqs = read.table(file = params$QC_Reqs,header = T,sep = "\t",
+                       stringsAsFactors = F,check.names = F)
+  # File structure checked in QC Function
+}
+### Load Source Functions
+if(!file.exists(params$Src_Funcs)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - The given source code (Src_Funcs) is not a valid file address. Check entry and try again.")
+} else {
+  source(params$Src_Funcs)
+}
+### Check Gene Expression Params
+if(is.null(params$GEX_Table)&&is.null(params$GEX_Plots)){
+  printGEX=F
+} else if(is.null(params$GEX_Table)&&!is.null(params$GEX_Plots)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the GEX QC Metrics Table argument (GEX_Table) but GEX QC Plots specified. Please specify both datasets.")
+} else if(!is.null(params$GEX_Table)&&is.null(params$GEX_Plots)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the GEX QC Plots argument (GEX_Plots) but GEX QC Metrics Table specified. Please specify both datasets.")
+} else {
+  ### Set Print Variable
+  printGEX = T
+  if(file.exists(params$GEX_Table)){
+    GEX_QCTabs = read.table(file = params$GEX_Table,header = T,sep = "\t",check.names = F,stringsAsFactors = F)
+    GEX_QCTabs = prepQC_Table(GEX_QCTabs)
+  } else {
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified GEX_Table is not a valid file address. Check input and try again.")
+  }
+  
+  if(file.exists(params$GEX_Table)){
+    load(params$GEX_Plots)
+    GEX_Plots = outPlots
+    rm(outPlots)
+  } else {
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified GEX_Plots is not a valid file address. Check input and try again.")
+  }
+  
+}
+### Check TCR Params
+if(is.null(params$TCR_Table)&&is.null(params$TCR_Plots)){
+  printTCR=F
+} else if(is.null(params$TCR_Table)&&!is.null(params$TCR_Plots)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the TCR QC Metrics Table argument (TCR_Table) but TCR QC Plots specified. Please specify both datasets.")
+} else if(!is.null(params$TCR_Table)&&is.null(params$TCR_Plots)){
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the TCR QC Plots argument (TCR_Plots) but TCR QC Metrics Table specified. Please specify both datasets.")
+} else {
+  printTCR = T
+  if(file.exists(params$TCR_Table)){
+    TCR_QCTabs = read.table(file = params$TCR_Table,header = T,sep = "\t",check.names = F,stringsAsFactors = F)
+    TCR_QCTabs = prepQC_Table(TCR_QCTabs)
+  } else {
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified TCR_Table is not a valid file address. Check input and try again.")
+  }
+  
+  if(file.exists(params$TCR_Table)){
+    load(params$TCR_Plots)
+    TCR_Plots = outPlots
+    rm(outPlots)
+  } else {
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified TCR_Plots is not a valid file address. Check input and try again.")
+  }
+}
+### Check Seurat/Scrublet Params
+if(is.null(params$SSS_Table1)&&is.null(params$SSS_Table2)){
+  printSSS=F
+} else if(is.null(params$SSS_Table1)&&!is.null(params$SSS_Table2)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the Seurat/Scrublet QC Metrics Table arguments (SSS_Table1) but Seurat/Scrublet Table 2 specified. Please specify both datasets.")
+} else if(!is.null(params$SSS_Table1)&&is.null(params$SSS_Table2)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the Seurat/Scrublet QC Metrics Table arguments (SSS_Table2) but Seurat/Scrublet Table 1 specified. Please specify both datasets.")
+} else {
+### Set Print Variable
+  printSSS = T
+  if(!file.exists(params$SSS_Table1)){
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified SSS_Table1 is not a valid file address. Check input and try again.")
+  }
+
+  if(!file.exists(params$SSS_Table2)){
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified SSS_Table2 is not a valid file address. Check input and try again.")
+  }
+}
+### Check SingleR Params
+if(is.null(params$SR_Plot)){
+  printSR=F
+} else if(is.null(params$SR_Plot)){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Missing the SingleR QC Plot argument (SR_Plot). Please specify plot.")
+} else {
+### Set Print Variable
+  printSR = T
+  if(!file.exists(params$SR_Plot)){
+    stop("ERROR - 10X_QCReport_Generator.Rmd - Specified SR_Plot is not a valid file address. Check input and try again.")
+  }
+}
+```
+
+# 10X Cell Ranger QC
+## Introduction
+Data in this study were processed using the 10X Genomics [Cell Ranger software suite](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/what-is-cell-ranger). This software computes numerous metrics to verify successful library generation and sequencing. The QC metrics for all samples are collected here for joint review. Additional detail for any sample can be found by locating its web summary. 
+
+<!--- GEX QC: Optional Run if printGEX=T --->
+```{r GEX_QC, child="Z:/User/10X/QC_web/GEX_QC.rmd",eval=printGEX}
+```
+
+<!--- TCR QC: Option Run if printTCR=T ---> 
+```{r TCR_QC, child="Z:/User/QC_web/TCR_QC.rmd",eval=printTCR}
+```
+
+<!--- SeuratScrublet QC: Optional Run if printSSS=T --->
+```{r SeuratScrublet_QC, child="Z:/User/10X/QC_web/Cell_QC.rmd",eval=printSSS}
+``` 
+
+<!--- SingleR QC: Optional Run if printSR=T --->
+```{r SingleR_QC, child="Z:/User/10X/QC_web/SingleR_QC.rmd",eval=printSR}
+```
+
+# Output File Description {.tabset}
+## Output Directory Structure
+
+```{r sessioninfo,warning=F,message=F,echo=FALSE}
+library(pander)
+pander(sessionInfo())
+```
+
+## Output File Type 1
+
+## Output File Type 2
+
+## Output File Type 3...
+
+#{-}
