@@ -1,0 +1,47 @@
+---
+output: html_document
+  code_folding: true
+---
+
+```{r setupSS, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cell QC {.tabset .tabset-pill}
+
+### Doublet/Dead Cell
+Metadata for each of the cells are automatically created in Seurat to identify any failed samples and filter data to only include true cells that are of high quality. Predicted dead cells are set to a mitochondria ratio greater than 0.1, a boolean array that is *True* for predicted dead and *False* otherwise. Similarly, identification of doublets are set to a threshold of 0.25 to generate predicted doublet.  
+
+```{r, fig.dim=c(5, 3),warning=F,message=F,echo=F}
+library(DT)
+read.csv(params$SSS_Table1) %>% datatable(extensions = 'Buttons',
+            options = list(dom = 'Blfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All"))),
+            colnames=c("Sample","Predicted Dead Ratio","Predicted Doublet Ratio","Mitochondria Ratio Count < 0.2","Doublet Score Count < 0.25")) %>% formatPercentage(c("Ratio.predicted_dead", "Ratio.predicted_doublet"), 1) 
+```
+
+Stuart and Butler et al. Comprehensive Integration of Single-Cell Data. Cell (2019).
+
+Wolock SL, Lopez R, Klein AM (2019). "Scrublet: computational identification of cell doublets in single-cell transcriptomic data." _Cell Syst._, *8(4)*, 281-291.e9. doi:10.1016/j.cels.2018.11.005 (URL:https://doi.org/10.1016/j.cels.2018.11.005).
+
+### Clusters
+SingleR cell annotation is performed on predefined clusters generated from Seurat to all/combined reference cell types to major cell types. This information is useful in visualizing and exploring the underlying manifold of the data in order to place similar cells together in low-dimensional space such as a UMAP.  
+
+*Column visibility button enables column selection options. Selection removes column(s) from table.*
+```{r, fig.dim=c(5, 3),warning=F,message=F,echo=F}
+data<-read.csv(params$SSS_Table2)  
+datatable(data, callback=JS('$("button.buttons-colvis").css("background","yellow");
+                    return table;'),
+            extensions = 'Buttons',
+            options = list(scrollX=TRUE,
+                           dom = 'Blfrtip',
+                           buttons = c(I('colvis'),'copy', 'csv', 'excel', 'pdf', 'print'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All")))) %>% formatPercentage(grep("ratio.",colnames(data)), 1)
+```
+
+Aran D, Looney AP, Liu L, Wu E, Fong V, Hsu A, Chak S, Naikawadi RP, Wolters PJ, Abate AR, Butte AJ, Bhattacharya M (2019). "Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage." _Nat. Immunol._, *20*, 163-172. doi: 10.1038/s41590-018-0276-y (URL:https://doi.org/10.1038/s41590-018-0276-y).
+
+#{-}
