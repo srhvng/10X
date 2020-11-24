@@ -1,0 +1,41 @@
+---
+output: html_document
+  code_folding: true
+---
+
+```{r setupGEX, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Gene Expression QC {.tabset .tabset-pill}
+In the first step in the 10X's recommended QC methodology, numeric measures of sequencing quality, including generated cell count and mapping rates, are examined. Samples which fail QC by falling outside of an acceptable threshold are denoted by a red background. The metrics on which they fail are highlighted (bolded and differently colored) for emphasis. 
+
+In the second step, a qualitative inspection of Barcode Rank plots are examined for each sample. To construct these plots, each barcode (or cell) in a sample is ranked by the number of unique molecular identifiers (UMI's) found within. The rank of each barcode (X-axis) is plotted against its UMI Count producing the Barcode Rank plot. Barcodes which are predicted to represent cells are colored in dark blue while barcodes predicted to be from empty droplets are colored in orange. Barcode rank plots for successfully sequenced samples should exhibit a "cliff-knee" structure; a "cliff-knee" structure displays gentle curvature before the first true "bend" in the curve, followed by two precipitous drops. For representative examples, please see the technical note from 10X found in the appendix. 
+
+### QC Tables
+```{r GEX_QC_TAB, echo=FALSE}
+GEX_manIdx = which(QC_Reqs$Assay=="GEX")
+if(length(GEX_manIdx)<1){
+  stop("ERROR - 10X_QCReport_Generator.Rmd - Manifest is improperly formed as no elements pertain to gene expression assays.")
+}
+colorTable(dataFrame=GEX_QCTabs,colorMani=as.data.frame(QC_Reqs[GEX_manIdx,]))
+```
+
+### QC Plots
+```{r GEX_QC_Plots, out.width='100%',out.height='50%',warning=FALSE,echo=FALSE}
+library(ggplot2)
+library(cowplot)
+library(plotly)
+### Extract Legend and remove from all plots
+numSamp_GEX = length(GEX_Plots)
+for(j in 1:numSamp_GEX){
+  if(j<numSamp_GEX)
+  GEX_Plots[[j]] = GEX_Plots[[j]]+theme(legend.position="none")
+}
+### Structure and print a multi-plot
+GEX_multiPlot = plot_grid(plotlist=GEX_Plots,ncol=min(numSamp_GEX,3),rel_widths = c(rep(1,(numSamp_GEX)-1),1.5))
+GEX_multiPlot
+rm(numSamp_GEX)
+```
+
+#{-}
